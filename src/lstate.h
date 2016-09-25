@@ -150,6 +150,11 @@ typedef struct global_State {
   TString *tmname[TM_N];  /* array with tag-method names */
   struct Table *mt[LUA_NUMTAGS];  /* metatables for basic types */
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
+  struct lua_State *allstates; /* array of all states */
+  struct lua_State *readystates; /* list of ready states */
+  struct lua_State *lastreadystate;
+  int statenum; /* length of state array */
+  int statecount; /* number of states */
 } global_State;
 
 
@@ -176,6 +181,8 @@ struct lua_State {
   int stacksize;
   int basehookcount;
   int hookcount;
+  int pid; /* id of this process */
+  int ppid; /* id of parent process */
   unsigned short nny;  /* number of non-yieldable calls in stack */
   unsigned short nCcalls;  /* number of nested C calls */
   l_signalT hookmask;
