@@ -197,6 +197,25 @@ static void init_registry (lua_State *L, global_State *g) {
 
 
 /*
+** Create state array
+*/
+static void init_statearray (lua_State *L, global_State *g) {
+  int i;
+  g->allstates = luaM_newvector(L, INIT_STATE_ARRAY_SIZE, lua_State*);
+  for (i = 0; i < INIT_STATE_ARRAY_SIZE; i++)
+    g->allstates[i] = NULL;
+  g->readystate = NULL;
+  g->plastreadystate = &g->readystate;
+  g->statenum = INIT_STATE_ARRAY_SIZE;
+  g->statecount = 0;
+  g->nextfreepid = 0;
+  L->pid = 0;
+  L->ppid = 0;
+  g->allstates[0] = L;
+}
+
+
+/*
 ** open parts of the state that may cause memory-allocation errors.
 ** ('g->version' != NULL flags that the state was completely build)
 */
@@ -205,6 +224,7 @@ static void f_luaopen (lua_State *L, void *ud) {
   UNUSED(ud);
   stack_init(L, L);  /* init stack */
   init_registry(L, g);
+  init_statearray(L, g);
   luaS_init(L);
   luaT_init(L);
   luaX_init(L);
@@ -247,12 +267,45 @@ static void close_state (lua_State *L) {
     luai_userstateclose(L);
   luaM_freearray(L, G(L)->strt.hash, G(L)->strt.size);
   freestack(L);
+  luaM_freearray(L, g->allstates, g->statenum);
+  g->readystate = NULL;
+  g->plastreadystate = NULL;
+  g->statenum = 0;
+  g->statecount = 0;
   lua_assert(gettotalbytes(g) == sizeof(LG));
   (*g->frealloc)(g->ud, fromstate(L), sizeof(LG), 0);  /* free main block */
 }
 
 
-LUA_API lua_State *lua_newthread (lua_State *L) {
+/*
+** return next free pid
+*/
+static int allocpid (lua_State *L, global_State *g) {
+  int nextpid = -1;
+  int i;
+
+  while (nextpid < 0) {
+    if (g->nextfreepid == g->statenum) {
+      if (g->statecount*10/g->statenum > 8) {
+        int newstatenum = 2*g->statenum;
+        luaM_reallocvector(L, g->allstates, g->statenum, newstatenum, lua_State*);
+        for (i=g->statenum; i<newstatenum; i++)
+          g->allstates[i] = NULL;
+        g->statenum = newstatenum;
+      } else {
+        g->nextfreepid = 0;
+      }
+    }
+    if (g->allstates[g->nextfreepid] == NULL)
+      nextpid = g->nextfreepid;
+    g->nextfreepid++;
+  }
+
+  return nextpid;
+}
+
+
+LUA_API lua_State *lua_newthread (lua_State *L, int ppid) {
   global_State *g = G(L);
   lua_State *L1;
   lua_lock(L);
@@ -261,6 +314,12 @@ LUA_API lua_State *lua_newthread (lua_State *L) {
   L1 = &cast(LX *, luaM_newobject(L, LUA_TTHREAD, sizeof(LX)))->l;
   L1->marked = luaC_white(g);
   L1->tt = LUA_TTHREAD;
+  /* initialize pid */
+  L1->pid = allocpid(L, g);
+  L1->ppid = ppid;
+  L1->nei = 0;
+  L1->total_nei = 0L;
+  g->allstates[L1->pid] = L1;
   /* link it on list 'allgc' */
   L1->next = g->allgc;
   g->allgc = obj2gco(L1);

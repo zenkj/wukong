@@ -49,6 +49,8 @@ struct lua_longjmp;  /* defined in ldo.c */
 
 #define BASIC_STACK_SIZE        (2*LUA_MINSTACK)
 
+#define INIT_STATE_ARRAY_SIZE   100
+
 
 /* kinds of Garbage Collection */
 #define KGC_NORMAL	0
@@ -150,11 +152,12 @@ typedef struct global_State {
   TString *tmname[TM_N];  /* array with tag-method names */
   struct Table *mt[LUA_NUMTAGS];  /* metatables for basic types */
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
-  struct lua_State *allstates; /* array of all states */
-  struct lua_State *readystates; /* list of ready states */
-  struct lua_State *lastreadystate;
+  struct lua_State **allstates; /* array of all states */
+  struct lua_State *readystate; /* list of ready states */
+  struct lua_State **plastreadystate;
   int statenum; /* length of state array */
   int statecount; /* number of states */
+  int nextfreepid; /* next free position in allstates array */
 } global_State;
 
 
@@ -183,6 +186,8 @@ struct lua_State {
   int hookcount;
   int pid; /* id of this process */
   int ppid; /* id of parent process */
+  int nei; /* number of executed instructions in this tick */
+  long total_nei; /* number of executed instructions from the thread beginning */
   unsigned short nny;  /* number of non-yieldable calls in stack */
   unsigned short nCcalls;  /* number of nested C calls */
   l_signalT hookmask;
