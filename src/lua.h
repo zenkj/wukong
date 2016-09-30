@@ -46,11 +46,14 @@
 /* thread status */
 #define LUA_OK		0
 #define LUA_YIELD	1
-#define LUA_ERRRUN	2
-#define LUA_ERRSYNTAX	3
-#define LUA_ERRMEM	4
-#define LUA_ERRGCMM	5
-#define LUA_ERRERR	6
+#define LUA_RUNNING	1
+#define LUA_READY	2
+#define LUA_BLOCK	3
+#define LUA_ERRRUN	4
+#define LUA_ERRSYNTAX	5
+#define LUA_ERRMEM	6
+#define LUA_ERRGCMM	7
+#define LUA_ERRERR	8
 
 
 typedef struct lua_State lua_State;
@@ -144,7 +147,7 @@ extern const char lua_ident[];
 */
 LUA_API lua_State *(lua_newstate) (lua_Alloc f, void *ud);
 LUA_API void       (lua_close) (lua_State *L);
-LUA_API lua_State *(lua_newthread) (lua_State *L);
+LUA_API lua_State *(lua_newthread) (lua_State *L, int ppid);
 
 LUA_API lua_CFunction (lua_atpanic) (lua_State *L, lua_CFunction panicf);
 

@@ -198,6 +198,7 @@ static void init_registry (lua_State *L, global_State *g) {
 
 /*
 ** Create state array
+** Called from main thread
 */
 static void init_statearray (lua_State *L, global_State *g) {
   int i;
@@ -207,10 +208,13 @@ static void init_statearray (lua_State *L, global_State *g) {
   g->readystate = NULL;
   g->plastreadystate = &g->readystate;
   g->statenum = INIT_STATE_ARRAY_SIZE;
-  g->statecount = 0;
-  g->nextfreepid = 0;
+  g->statecount = 1; // main thread
+  g->nextfreepid = 1;
   L->pid = 0;
   L->ppid = 0;
+  L->nei = 0;
+  L->total_nei = 0L;
+  L->nextreadystate = NULL;
   g->allstates[0] = L;
 }
 
@@ -319,6 +323,7 @@ LUA_API lua_State *lua_newthread (lua_State *L, int ppid) {
   L1->ppid = ppid;
   L1->nei = 0;
   L1->total_nei = 0L;
+  L1->nextreadystate = NULL;
   g->allstates[L1->pid] = L1;
   /* link it on list 'allgc' */
   L1->next = g->allgc;

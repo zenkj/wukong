@@ -754,6 +754,15 @@ void luaV_finishOp (lua_State *L) {
 
 /* fetch an instruction and prepare its execution */
 #define vmfetch()	{ \
+  if (L->nei == LUA_NEI_PER_TICK) { \
+    L->total_nei += L->nei; \
+    L->nei = 0; \
+    L->status = LUA_READY; \
+    *G(L)->plastreadystate = L; \
+    G(L)->plastreadystate = &L->nextreadystate; \
+    return; \
+  } \
+  L->nei++; \
   i = *(ci->u.l.savedpc++); \
   if (L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) \
     Protect(luaG_traceexec(L)); \
@@ -789,6 +798,13 @@ void luaV_execute (lua_State *L) {
   TValue *k;
   StkId base;
   ci->callstatus |= CIST_FRESH;  /* fresh invocation of 'luaV_execute" */
+  lua_assert(L == G(L)->readystate);
+  G(L)->readystate = L->nextreadystate;
+  if (&L->nextreadystate == G(L)->plastreadystate) {
+    lua_assert(L->nextreadystate == NULL);
+    G(L)->plastreadystate = &G(L)->readystate;
+  }
+  L->status = LUA_RUNNING;
  newframe:  /* reentry point when frame changes (call/return) */
   lua_assert(ci == L->ci);
   cl = clLvalue(ci->func);  /* local reference to function's closure */

@@ -760,7 +760,10 @@
 */
 
 
-
+/*
+** Number of executed instructions per tick
+*/
+#define LUA_NEI_PER_TICK 10000
 
 
 #endif

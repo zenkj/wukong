@@ -181,6 +181,7 @@ struct lua_State {
   CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
   volatile lua_Hook hook;
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  struct lua_State *nextreadystate;
   int stacksize;
   int basehookcount;
   int hookcount;

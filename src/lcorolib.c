@@ -89,7 +89,7 @@ static int luaB_auxwrap (lua_State *L) {
 static int luaB_cocreate (lua_State *L) {
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);
-  NL = lua_newthread(L);
+  NL = lua_newthread(L, 0);
   lua_pushvalue(L, 1);  /* move function to top */
   lua_xmove(L, NL, 1);  /* move function from L to NL */
   return 1;
